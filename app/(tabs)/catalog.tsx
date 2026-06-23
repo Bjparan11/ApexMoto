@@ -24,15 +24,16 @@ export default function CatalogLayout() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // 1. High-quality default fallback images based strictly on the category string
+ // Fixed: All URLs are now direct, raw image file paths
   const categoryImages: Record<string, string> = {
-    brakes: "https://images.unsplash.com/photo-1485965120184-e220f721d03e?q=80&w=300&auto=format&fit=crop", // Brake discs/motorcycle wheel
-    engine: "https://images.unsplash.com/photo-1616422285623-13ff0162193c?q=80&w=300&auto=format&fit=crop", // Polished engine block
-    suspension: "https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?q=80&w=300&auto=format&fit=crop", // Performance shock absorbers
-    exhaust: "https://images.unsplash.com/photo-1611245781313-f4c022204c32?q=80&w=300&auto=format&fit=crop", // Exhaust pipings/chrome finish
-    electrical: "https://images.unsplash.com/photo-1558441719-ff34b0524a24?q=80&w=300&auto=format&fit=crop", // Wiring spark plugs/batteries
-    accessories: "https://images.unsplash.com/photo-1609630875171-b1321377ee65?q=80&w=300&auto=format&fit=crop", // Helmets/gloves/add-ons
-    default: "https://images.unsplash.com/photo-1558981806-ec527fa84c39?q=80&w=300&auto=format&fit=crop", // General performance bike photo
+    mags: "https://images.unsplash.com/photo-1599819811279-d5ad9cccf838?q=80&w=300&auto=format&fit=crop", // Direct image link for aftermarket mags
+    brake: "https://images.unsplash.com/photo-1485965120184-e220f721d03e?q=80&w=300&auto=format&fit=crop", // Disc Brake / Pads assembly
+    wheel: "https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?q=80&w=300&auto=format&fit=crop", // Maxxis Sport Motorcycle Wheel / Tire
+    exhaust: "https://images.unsplash.com/photo-1611245781313-f4c022204c32?q=80&w=300&auto=format&fit=crop", // Racing Exhaust Pipe Layout
+    muffler: "https://images.unsplash.com/photo-1609630875171-b1321377ee65?q=80&w=300&auto=format&fit=crop", // Exhaust Canister / Muffler
+    seat: "https://images.unsplash.com/photo-1622185135505-2d795003994a?q=80&w=300&auto=format&fit=crop", // JRP Style Flatseat look
+    light: "https://images.unsplash.com/photo-1609630875289-22852233b5c3?q=80&w=300&auto=format&fit=crop", // Bright LED Headlight
+    default: "https://images.unsplash.com/photo-1558981806-ec527fa84c39?q=80&w=300&auto=format&fit=crop", // Default APEX Superbike
   };
 
   useEffect(() => {
@@ -222,8 +223,8 @@ export default function CatalogLayout() {
         renderItem={({ item }) => {
           const isWishlisted = wishlistIds.includes(item.id);
           
-          // 2. DYNAMIC MAPPING: Fall back to category-specific imagery if image_url is empty
-          const normalizedCategory = item.category ? item.category.toLowerCase() : "default";
+          // Fall back to specific motorcycle structural imagery mappings if explicit image_url is missing
+          const normalizedCategory = item.category ? item.category.toLowerCase().trim() : "default";
           const productPhoto = item.image_url || categoryImages[normalizedCategory] || categoryImages.default;
 
           return (

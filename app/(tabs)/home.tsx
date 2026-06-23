@@ -55,7 +55,7 @@ export default function HomeLayout() {
         }, {});
 
         // 3. Re-map static schema layout against real-time database value aggregates
-        const targetedCategories = ["Brakes", "Engine", "Suspension", "Exhaust", "Electrical", "Accessories"];
+        const targetedCategories = ["Brakes", "Mags", "Seat", "Exhaust", "Light", "Wheel"];
         const computedCategories = targetedCategories.map((cat) => ({
           name: cat,
           count: `${frequencyMap[cat] || 0} parts`,

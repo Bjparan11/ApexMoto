@@ -25,7 +25,7 @@ export default function Index() {
         {/* Catchy Tagline */}
         <Text style={styles.title}>Reach Your APEX</Text>
         <Text style={styles.subtitle}>
-          Elevate your productivity and experience the next generation of performance management.
+          Your Ultimate Ride Starts Here!!
         </Text>
       </View>
 
@@ -46,7 +46,7 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#121212", // Clean dark theme canvas matching your references
+    backgroundColor: "#0c0b0b", // Clean dark theme canvas matching your references
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: 60,
