@@ -1,7 +1,7 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { supabase } from "../../utils/supabase"; // Verify path matches your file tree
+import { supabase } from "../../utils/supabase";
 
 export default function Register() {
   const router = useRouter();
@@ -11,20 +11,26 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
 
   const handleRegister = async () => {
-    if (!email || !password || !name) {
+    // Basic Validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!name || !email || !password) {
       Alert.alert("Error", "Please fill out all fields.");
+      return;
+    }
+    if (!emailRegex.test(email)) {
+      Alert.alert("Error", "Please enter a valid email address.");
+      return;
+    }
+    if (password.length < 6) {
+      Alert.alert("Error", "Password must be at least 6 characters long.");
       return;
     }
 
     setLoading(true);
-    
-    // Connects to Supabase Authentication database
-    const { data, error } = await supabase.auth.signUp({
-      email: email,
-      password: password,
-      options: {
-        data: { full_name: name } // Stores display name in metadata fields
-      }
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { full_name: name } }
     });
 
     setLoading(false);
@@ -32,11 +38,11 @@ export default function Register() {
     if (error) {
       Alert.alert("Registration Failed", error.message);
     } else {
-      Alert.alert(
-        "Registration Successful", 
-        "Check your inbox for a confirmation link/code!",
-        [{ text: "OK", onPress: () => router.push("/(auth)/login") }]
-      );
+      // Direct to Verify screen
+      router.push({
+        pathname: "/(auth)/verify-email",
+        params: { email }
+      });
     }
   };
 
@@ -50,44 +56,15 @@ export default function Register() {
 
         <View style={styles.form}>
           <Text style={styles.label}>Full Name</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="John Doe"
-            placeholderTextColor="#64748b"
-            value={name}
-            onChangeText={setName}
-            editable={!loading}
-          />
+          <TextInput style={styles.input} placeholder="John Doe" placeholderTextColor="#64748b" value={name} onChangeText={setName} editable={!loading} />
 
           <Text style={styles.label}>Email Address</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="name@example.com"
-            placeholderTextColor="#64748b"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            value={email}
-            onChangeText={setEmail}
-            editable={!loading}
-          />
+          <TextInput style={styles.input} placeholder="name@example.com" placeholderTextColor="#64748b" keyboardType="email-address" autoCapitalize="none" value={email} onChangeText={setEmail} editable={!loading} />
 
           <Text style={styles.label}>Password</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Create a strong password"
-            placeholderTextColor="#64748b"
-            secureTextEntry
-            autoCapitalize="none"
-            value={password}
-            onChangeText={setPassword}
-            editable={!loading}
-          />
+          <TextInput style={styles.input} placeholder="Create a strong password" placeholderTextColor="#64748b" secureTextEntry autoCapitalize="none" value={password} onChangeText={setPassword} editable={!loading} />
 
-          <TouchableOpacity 
-            style={[styles.primaryButton, { marginTop: 24 }, loading && { opacity: 0.7 }]} 
-            onPress={handleRegister}
-            disabled={loading}
-          >
+          <TouchableOpacity style={[styles.primaryButton, { marginTop: 24 }, loading && { opacity: 0.7 }]} onPress={handleRegister} disabled={loading}>
             {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.primaryButtonText}>Sign Up</Text>}
           </TouchableOpacity>
         </View>

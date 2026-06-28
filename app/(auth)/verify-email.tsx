@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { supabase } from "../../utils/supabase"; // Verify path matches your file tree
+import { supabase } from "../../utils/supabase";
 
 export default function VerifyEmail() {
   const router = useRouter();
@@ -10,113 +10,76 @@ export default function VerifyEmail() {
   const [email, setEmail] = useState(initialEmail || "");
   const [token, setToken] = useState("");
   const [loading, setLoading] = useState(false);
-  const [resending, setResending] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
 
-  // Handles confirmation code token submission
-  const handleVerify = async () => {
-    if (!email || !token) {
-      Alert.alert("Error", "Please fill out your email and confirmation token.");
-      return;
+  useEffect(() => {
+    if (cooldown > 0) {
+      const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+      return () => clearTimeout(timer);
     }
+  }, [cooldown]);
 
+  const handleVerify = async () => {
+    if (!token) return Alert.alert("Error", "Please enter the verification code.");
     setLoading(true);
-    
-    const { data, error } = await supabase.auth.verifyOtp({
-      email: email,
-      token: token,
-      type: "signup"
-    });
-
+    const { error } = await supabase.auth.verifyOtp({ email, token, type: "signup" });
     setLoading(false);
 
     if (error) {
       Alert.alert("Verification Failed", error.message);
     } else {
-      Alert.alert(
-        "Account Activated", 
-        "Your APEX account has been fully optimized!",
-        [{ text: "Let's Ride", onPress: () => router.replace("/home") }]
-      );
+      router.replace("/home");
     }
   };
 
-  // Handles requesting a new verification code
   const handleResendCode = async () => {
-    if (!email) {
-      Alert.alert("Error", "Please provide your registration email address.");
-      return;
-    }
-
-    setResending(true);
-
-    const { error } = await supabase.auth.resend({
-      type: "signup",
-      email: email,
-    });
-
-    setResending(false);
-
-    if (error) {
-      Alert.alert("Resend Failed", error.message);
-    } else {
-      Alert.alert("Code Sent 📥", "A fresh confirmation code has been dispatched to your inbox.");
-    }
+    setCooldown(60);
+    const { error } = await supabase.auth.resend({ type: "signup", email });
+    if (error) Alert.alert("Resend Failed", error.message);
+    else Alert.alert("Code Sent", "Check your inbox for a new code.");
   };
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.headerContainer}>
           <Text style={styles.title}>Verify Email</Text>
-          <Text style={styles.subtitle}>Enter the validation digits dispatched to your registration mailbox</Text>
+          <Text style={styles.subtitle}>Enter the 6-digit code sent to {email}</Text>
         </View>
 
         <View style={styles.form}>
-          <Text style={styles.label}>Email Address</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="name@example.com"
-            placeholderTextColor="#64748b"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            value={email}
-            onChangeText={setEmail}
-            editable={!loading && !initialEmail} // Keep locked if passed from register redirect
+          <TextInput 
+            style={styles.input} 
+            placeholder="Enter 6-digit code" 
+            placeholderTextColor="#64748b" 
+            keyboardType="number-pad" 
+            value={token} 
+            onChangeText={setToken} 
           />
-
-          <Text style={styles.label}>Confirmation Token Code</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter OTP Code (6-digit token)"
-            placeholderTextColor="#64748b"
-            keyboardType="number-pad"
-            autoCapitalize="none"
-            value={token}
-            onChangeText={setToken}
-            editable={!loading}
-          />
-
-          <TouchableOpacity 
-            style={[styles.primaryButton, { marginTop: 32 }, loading && { opacity: 0.7 }]} 
-            onPress={handleVerify}
-            disabled={loading}
-          >
+          
+          <TouchableOpacity style={[styles.primaryButton, { marginTop: 32 }]} onPress={handleVerify} disabled={loading}>
             {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.primaryButtonText}>Verify Token</Text>}
           </TouchableOpacity>
         </View>
 
+        {/* Updated Footer Section */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Didn't receive structural codes? </Text>
-          <TouchableOpacity onPress={handleResendCode} disabled={resending || loading}>
-            {resending ? (
-              <ActivityIndicator color="#FF5722" size="small" />
-            ) : (
-              <Text style={[styles.linkText, styles.boldLink]}>Resend Code</Text>
-            )}
-          </TouchableOpacity>
-        </View>
+          <View style={styles.footerRow}>
+            <Text style={styles.footerText}>Need another code? </Text>
+            <TouchableOpacity onPress={handleResendCode} disabled={cooldown > 0}>
+              <Text style={[styles.linkText, { opacity: cooldown > 0 ? 0.5 : 1 }]}>
+                {cooldown > 0 ? `Resend (${cooldown}s)` : "Resend Code"}
+              </Text>
+            </TouchableOpacity>
+          </View>
 
+          <View style={[styles.footerRow, { marginTop: 12 }]}>
+            <Text style={styles.footerText}>Already verified? </Text>
+            <TouchableOpacity onPress={() => router.replace("/(auth)/login")}>
+              <Text style={[styles.linkText, styles.boldLink]}>Back to Login</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -208,4 +171,9 @@ const styles = StyleSheet.create({
     color: "#94a3b8", 
     fontSize: 14 
   },
+  footerRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center"
+  }
 });

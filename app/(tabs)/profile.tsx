@@ -116,7 +116,7 @@ export default function ProfileLayout() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF5722" />
+        <ActivityIndicator size="large" color="#A72323" />
         <Text style={styles.loadingText}>Fetching Account Sync...</Text>
       </View>
     );
@@ -133,7 +133,7 @@ export default function ProfileLayout() {
             <Text style={styles.avatarText}>{initials}</Text>
           </View>
 
-          <Text style={styles.nameText}>{`${firstName} ${lastName}`.trim() || "APEX User"}</Text>
+          <Text style={styles.nameText}>{`${firstName} ${lastName}`.trim() || "GENTLEMAN User"}</Text>
           <Text style={styles.emailText}>{email}</Text>
           
           <View style={styles.badgeContainer}>
@@ -142,21 +142,27 @@ export default function ProfileLayout() {
 
           {/* Fully Connected Real-Time Stats Summary Grid */}
           <View style={styles.statsGrid}>
-            <View style={[styles.statBox, styles.statBoxBorder]}>
-              <Text style={styles.statNumberOrange}>{orderCount}</Text>
+            {/* Himuong mapindot ang Orders Box */}
+            <TouchableOpacity 
+              style={[styles.statBox, styles.statBoxBorder]} 
+              activeOpacity={0.7}
+              onPress={() => router.push("/(tabs)/order")} // Usba ang path base sa imong file tree (e.g., "/(orders)/history")
+            >
+              <Text style={styles.statNumberRed}>{orderCount}</Text>
               <Text style={styles.statLabel}>ORDERS</Text>
-            </View>
+              <Text style={styles.clickHint}>View History</Text>
+            </TouchableOpacity>
+
             <View style={[styles.statBox, styles.statBoxBorder]}>
-              <Text style={[styles.statNumberDim, wishlistCount > 0 && { color: "#FF5722" }]}>{wishlistCount}</Text>
+              <Text style={[styles.statNumberDim, wishlistCount > 0 && { color: "#A72323" }]}>{wishlistCount}</Text>
               <Text style={styles.statLabel}>WISHLIST</Text>
             </View>
+
             <View style={styles.statBox}>
-              <Text style={[styles.statNumberDim, cartCount > 0 && { color: "#FF5722" }]}>{cartCount}</Text>
+              <Text style={[styles.statNumberDim, cartCount > 0 && { color: "#A72323" }]}>{cartCount}</Text>
               <Text style={styles.statLabel}>IN CART</Text>
             </View>
           </View>
-
-          
         </View>
 
         <View style={styles.mainFormCard}>
@@ -212,22 +218,19 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, backgroundColor: "#0a0a0a", justifyContent: "center", alignItems: "center" },
   loadingText: { color: "#9ca3af", fontSize: 14, marginTop: 12, fontWeight: "600" },
   leftProfileCard: { backgroundColor: "#121212", padding: 20, borderRadius: 8, alignItems: "center", marginBottom: 20, borderWidth: 1, borderColor: "#222222" },
-  avatarCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: "#FF5722", justifyContent: "center", alignItems: "center", marginBottom: 16 },
+  avatarCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: "#A72323", justifyContent: "center", alignItems: "center", marginBottom: 16 },
   avatarText: { color: "#ffffff", fontSize: 26, fontWeight: "900", letterSpacing: 0.5 },
   nameText: { fontSize: 20, fontWeight: "800", color: "#ffffff", marginBottom: 4 },
   emailText: { fontSize: 14, color: "#6b7280", marginBottom: 12 },
   badgeContainer: { backgroundColor: "#1e1e1e", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, marginBottom: 20 },
   badgeText: { color: "#6b7280", fontSize: 12, fontWeight: "500" },
   statsGrid: { flexDirection: "row", backgroundColor: "#1a1a1a", borderRadius: 8, borderWidth: 1, borderColor: "#262626", marginBottom: 20, width: "100%" },
-  statBox: { flex: 1, alignItems: "center", paddingVertical: 12 },
+  statBox: { flex: 1, alignItems: "center", paddingVertical: 12, justifyContent: "center" },
   statBoxBorder: { borderRightWidth: 1, borderColor: "#262626" },
-  statNumberOrange: { color: "#FF5722", fontSize: 16, fontWeight: "800" },
+  statNumberRed: { color: "#A72323", fontSize: 16, fontWeight: "800" },
   statNumberDim: { color: "#6b7280", fontSize: 16, fontWeight: "800" },
   statLabel: { color: "#4b5563", fontSize: 10, fontWeight: "700", marginTop: 2 },
-  menuItem: { width: "100%", paddingVertical: 12, paddingHorizontal: 16, borderRadius: 6, marginBottom: 4, flexDirection: "row" },
-  menuItemActive: { backgroundColor: "#221410" },
-  menuItemActiveText: { color: "#FF5722", fontWeight: "700", fontSize: 14 },
-  menuItemText: { color: "#9ca3af", fontWeight: "600", fontSize: 14 },
+  clickHint: { color: "#6b7280", fontSize: 8, marginTop: 2, textTransform: "uppercase" },
   mainFormCard: { backgroundColor: "#121212", padding: 20, borderRadius: 8, borderWidth: 1, borderColor: "#222222", marginBottom: 24 },
   sectionTitle: { fontSize: 16, fontWeight: "800", color: "#ffffff", marginBottom: 20, letterSpacing: 0.3 },
   row: { flexDirection: "row", gap: 12, width: "100%" },
@@ -238,7 +241,7 @@ const styles = StyleSheet.create({
   buttonActionRow: { flexDirection: "row", justifyContent: "flex-end", gap: 12, marginTop: 12 },
   cancelButton: { borderWidth: 1, borderColor: "#262626", paddingHorizontal: 20, paddingVertical: 12, borderRadius: 6 },
   cancelButtonText: { color: "#ffffff", fontSize: 13, fontWeight: "700" },
-  saveButton: { backgroundColor: "#FF5722", paddingHorizontal: 20, paddingVertical: 12, borderRadius: 6, minWidth: 130, justifyContent: "center", alignItems: "center" },
+  saveButton: { backgroundColor: "#A72323", paddingHorizontal: 20, paddingVertical: 12, borderRadius: 6, minWidth: 130, justifyContent: "center", alignItems: "center" },
   saveButtonText: { color: "#ffffff", fontSize: 13, fontWeight: "800" },
   logoutButton: { width: "100%", height: 50, backgroundColor: "#1e1a1a", borderRadius: 8, justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: "#3f2222" },
   logoutText: { color: "#ef4444", fontSize: 15, fontWeight: "700" },
