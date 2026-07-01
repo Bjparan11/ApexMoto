@@ -17,63 +17,87 @@ interface PartItem {
 export default function CatalogLayout() {
   const { filter } = useLocalSearchParams<{ filter?: string }>();
   
-  const [parts, setParts] = useState<PartItem[]>([]);
+  const [allParts, setAllParts] = useState<PartItem[]>([]); 
+  const [filteredParts, setFilteredParts] = useState<PartItem[]>([]); 
   const [wishlistIds, setWishlistIds] = useState<string[]>([]); 
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  
   const [searchQuery, setSearchQuery] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
- // Fixed: All URLs are now direct, raw image file paths
   const categoryImages: Record<string, string> = {
-    mags: "https://images.unsplash.com/photo-1599819811279-d5ad9cccf838?q=80&w=300&auto=format&fit=crop", // Direct image link for aftermarket mags
-    brake: "https://images.unsplash.com/photo-1485965120184-e220f721d03e?q=80&w=300&auto=format&fit=crop", // Disc Brake / Pads assembly
-    wheel: "https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?q=80&w=300&auto=format&fit=crop", // Maxxis Sport Motorcycle Wheel / Tire
-    exhaust: "https://images.unsplash.com/photo-1611245781313-f4c022204c32?q=80&w=300&auto=format&fit=crop", // Racing Exhaust Pipe Layout
-    muffler: "https://images.unsplash.com/photo-1609630875171-b1321377ee65?q=80&w=300&auto=format&fit=crop", // Exhaust Canister / Muffler
-    seat: "https://images.unsplash.com/photo-1622185135505-2d795003994a?q=80&w=300&auto=format&fit=crop", // JRP Style Flatseat look
-    light: "https://images.unsplash.com/photo-1609630875289-22852233b5c3?q=80&w=300&auto=format&fit=crop", // Bright LED Headlight
-    default: "https://images.unsplash.com/photo-1558981806-ec527fa84c39?q=80&w=300&auto=format&fit=crop", // Default APEX Superbike
+    mags: "https://images.unsplash.com/photo-1599819811279-d5ad9cccf838?q=80&w=300&auto=format&fit=crop", 
+    mags_alloy: "https://images.unsplash.com/photo-1611245781313-f4c022204c32?q=80&w=300&auto=format&fit=crop", 
+    mags_spoke: "https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?q=80&w=300&auto=format&fit=crop", 
+    brake: "https://images.unsplash.com/photo-1485965120184-e220f721d03e?q=80&w=300&auto=format&fit=crop", 
+    wheel: "https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?q=80&w=300&auto=format&fit=crop", 
+    exhaust: "https://images.unsplash.com/photo-1611245781313-f4c022204c32?q=80&w=300&auto=format&fit=crop", 
+    muffler: "https://images.unsplash.com/photo-1609630875171-b1321377ee65?q=80&w=300&auto=format&fit=crop", 
+    seat: "https://images.unsplash.com/photo-1622185135505-2d795003994a?q=80&w=300&auto=format&fit=crop", 
+    light: "https://images.unsplash.com/photo-1609630875289-22852233b5c3?q=80&w=300&auto=format&fit=crop", 
+    default: "https://images.unsplash.com/photo-1558981806-ec527fa84c39?q=80&w=300&auto=format&fit=crop", 
   };
 
-  useEffect(() => {
-    if (filter) {
-      setSelectedCategory(filter.toLowerCase());
-    } else {
-      setSelectedCategory("all");
-    }
-  }, [filter]);
-
-  useEffect(() => {
-    loadCatalogAndWishlist();
-  }, [selectedCategory]);
-
-  const loadCatalogAndWishlist = async () => {
+  // 1. I-FETCH ANG MGA PRODUDKTO UG I-APPLY ANG FILTER KUNG ADUNA MAN
+  async function fetchAndLoadParts(targetFilter?: string) {
     try {
-      if (!refreshing) setLoading(true);
-      await Promise.all([fetchCatalog(), fetchWishlist()]);
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("parts_catalog")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      
+      const partsData = data || [];
+      setAllParts(partsData);
+      
+      const activeFilter = targetFilter || filter;
+      if (activeFilter) {
+        // KUNG GIKAN SA HOMEPAGE: I-filter dretso ang data
+        const queryText = activeFilter.toLowerCase().trim();
+        setSearchQuery(queryText);
+
+        const matched = partsData.filter(item => {
+          const categoryMatch = item.category ? item.category.toLowerCase().includes(queryText) : false;
+          const nameMatch = item.name ? item.name.toLowerCase().includes(queryText) : false;
+          return categoryMatch || nameMatch;
+        });
+        setFilteredParts(matched);
+      } else {
+        // KUNG WALAAY FILTER: I-display gihapon ang TANANG mga produkto (Orighinal Setup)
+        setFilteredParts(partsData);
+      }
+    } catch (error: any) {
+      Alert.alert("Catalog Error", error.message || "Failed to download parts cache.");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }
 
-  const fetchCatalog = async () => {
-    try {
-      let query = supabase.from("parts_catalog").select("*");
-
-      if (selectedCategory !== "all") {
-        query = query.ilike("category", selectedCategory);
-      }
-
-      const { data, error } = await query.order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setParts(data || []);
-    } catch (error: any) {
-      Alert.alert("Catalog Error", error.message || "Failed to download parts cache.");
+  // Para sa manual typing filter sa search bar
+  function applyClientFilter(text: string) {
+    const queryText = text.trim().toLowerCase();
+    if (!queryText) {
+      setFilteredParts(allParts); // Ibalik sa tanang produkto kung gi-clear ang search input
+      return;
     }
-  };
+
+    const matched = allParts.filter(item => {
+      const categoryMatch = item.category ? item.category.toLowerCase().includes(queryText) : false;
+      const nameMatch = item.name ? item.name.toLowerCase().includes(queryText) : false;
+      return categoryMatch || nameMatch;
+    });
+
+    setFilteredParts(matched);
+  }
+
+  // Mo-run kada abli ug kada usab sa rota / filter parameters
+  useEffect(() => {
+    fetchWishlist();
+    fetchAndLoadParts();
+  }, [filter]);
 
   const fetchWishlist = async () => {
     try {
@@ -94,13 +118,16 @@ export default function CatalogLayout() {
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    loadCatalogAndWishlist();
-  }, [selectedCategory]);
+    fetchAndLoadParts();
+  }, [filter]);
+
+  const handleApplySearch = () => {
+    applyClientFilter(searchQuery);
+  };
 
   const handleAddToCart = async (part: PartItem) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
       if (!user) {
         Alert.alert("Authentication Required", "Please log into your APEX account to add items to your cart.");
         return;
@@ -172,16 +199,11 @@ export default function CatalogLayout() {
     }
   };
 
-  const filteredParts = parts.filter((part) =>
-    part.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    part.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   if (loading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#FF5722" />
-        <Text style={styles.loadingText}>Syncing High-Performance Feed...</Text>
+        <Text style={styles.loadingText}>Searching High-Performance Feed...</Text>
       </View>
     );
   }
@@ -197,18 +219,28 @@ export default function CatalogLayout() {
             placeholder="Search parts, engines, brakes..."
             placeholderTextColor="#6b7280"
             value={searchQuery}
-            onChangeText={setSearchQuery}
+            onChangeText={(text) => {
+              setSearchQuery(text);
+              applyClientFilter(text); // Mo-filter ra dretso samtang nag-type (real-time)
+            }}
+            onSubmitEditing={handleApplySearch} 
             autoCapitalize="none"
+            returnKeyType="search"
           />
         </View>
-        <TouchableOpacity style={styles.filterButton} activeOpacity={0.7} onPress={() => setSelectedCategory("all")}>
+        
+        <TouchableOpacity 
+          style={styles.filterButton} 
+          activeOpacity={0.7} 
+          onPress={handleApplySearch}
+        >
           <SlidersHorizontal color="#ffffff" size={20} />
         </TouchableOpacity>
       </View>
 
       {/* Parts List */}
       <FlatList
-        data={filteredParts}
+        data={filteredParts} // Kanunay kini naay sulod (All parts o gi-filter nga parts)
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
@@ -217,63 +249,51 @@ export default function CatalogLayout() {
         }
         ListEmptyComponent={
           <View style={styles.emptyView}>
-            <Text style={styles.emptyText}>No matching components found.</Text>
+            <Text style={styles.emptyText}>No parts matched your query.</Text>
           </View>
         }
         renderItem={({ item }) => {
           const isWishlisted = wishlistIds.includes(item.id);
-          
-          // Fall back to specific motorcycle structural imagery mappings if explicit image_url is missing
           const normalizedCategory = item.category ? item.category.toLowerCase().trim() : "default";
-          const productPhoto = item.image_url || categoryImages[normalizedCategory] || categoryImages.default;
+          const normalizedName = item.name ? item.name.toLowerCase() : "";
+          
+          let productPhoto = item.image_url;
+          
+          if (!productPhoto) {
+            if (normalizedCategory === "mags") {
+              if (normalizedName.includes("alloy")) {
+                productPhoto = categoryImages.mags_alloy;
+              } else if (normalizedName.includes("spoke")) {
+                productPhoto = categoryImages.mags_spoke;
+              } else {
+                productPhoto = categoryImages.mags;
+              }
+            } else {
+              productPhoto = categoryImages[normalizedCategory] || categoryImages.default;
+            }
+          }
 
           return (
             <View style={styles.partCard}>
-              
-              {/* Product Thumbnail Block */}
-              <Image 
-                source={{ uri: productPhoto }} 
-                style={styles.partImage} 
-                resizeMode="cover"
-              />
-
-              {/* Core Text Elements */}
+              <Image source={{ uri: productPhoto }} style={styles.partImage} resizeMode="cover" />
               <View style={styles.infoColumn}>
-                <Text style={styles.categoryBadge}>{item.category.toUpperCase()}</Text>
+                <Text style={styles.categoryBadge}>{item.category ? item.category.toUpperCase() : "PART"}</Text>
                 <Text style={styles.partName} numberOfLines={2}>{item.name}</Text>
-                
                 <View style={styles.ratingRow}>
                   <Star color="#FF5722" size={12} fill="#FF5722" />
                   <Text style={styles.ratingText}>{item.rating ? item.rating.toFixed(1) : "5.0"}</Text>
                   <Text style={styles.reviewsText}>({item.reviews_count || 0})</Text>
                 </View>
-                
-                <Text style={styles.priceText}>{item.price.toFixed(2)}</Text>
+                <Text style={styles.priceText}>₱{item.price ? item.price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : "0.00"}</Text>
               </View>
-
-              {/* Side Action Cluster */}
               <View style={styles.actionButtonGroup}>
-                <TouchableOpacity 
-                  style={[styles.wishlistButton, isWishlisted && styles.wishlistButtonActive]} 
-                  onPress={() => handleToggleWishlist(item.id)}
-                  activeOpacity={0.7}
-                >
-                  <Heart 
-                    color={isWishlisted ? "#FF5722" : "#6b7280"} 
-                    fill={isWishlisted ? "#FF5722" : "transparent"} 
-                    size={16} 
-                  />
+                <TouchableOpacity style={[styles.wishlistButton, isWishlisted && styles.wishlistButtonActive]} onPress={() => handleToggleWishlist(item.id)} activeOpacity={0.7}>
+                  <Heart color={isWishlisted ? "#FF5722" : "#6b7280"} fill={isWishlisted ? "#FF5722" : "transparent"} size={16} />
                 </TouchableOpacity>
-
-                <TouchableOpacity 
-                  style={styles.addToCartButton} 
-                  onPress={() => handleAddToCart(item)}
-                  activeOpacity={0.8}
-                >
+                <TouchableOpacity style={styles.addToCartButton} onPress={() => handleAddToCart(item)} activeOpacity={0.8}>
                   <ShoppingCart color="#ffffff" size={16} />
                 </TouchableOpacity>
               </View>
-
             </View>
           );
         }}
@@ -290,7 +310,7 @@ const styles = StyleSheet.create({
   searchBarContainer: { flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: "#121212", borderRadius: 8, borderWidth: 1, borderColor: "#222222", paddingHorizontal: 12, height: 46 },
   searchIcon: { marginRight: 8 },
   searchInput: { flex: 1, color: "#ffffff", fontSize: 14, height: "100%" },
-  filterButton: { backgroundColor: "#121212", width: 46, height: 46, borderRadius: 8, borderWidth: 1, borderColor: "#222222", justifyContent: "center", alignItems: "center" },
+  filterButton: { backgroundColor: "#FF5722", width: 46, height: 46, borderRadius: 8, justifyContent: "center", alignItems: "center" }, 
   listContent: { padding: 16, paddingBottom: 32 },
   partCard: { backgroundColor: "#121212", borderRadius: 8, borderWidth: 1, borderColor: "#222222", padding: 12, marginBottom: 12, flexDirection: "row", alignItems: "center" },
   partImage: { width: 90, height: 90, borderRadius: 6, backgroundColor: "#1a1a1a", marginRight: 14 },
@@ -305,6 +325,6 @@ const styles = StyleSheet.create({
   wishlistButton: { backgroundColor: "#1a1a1a", width: 38, height: 38, borderRadius: 6, justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: "#262626" },
   wishlistButtonActive: { backgroundColor: "#221410", borderColor: "#FF5722" },
   addToCartButton: { backgroundColor: "#FF5722", width: 38, height: 38, borderRadius: 6, justifyContent: "center", alignItems: "center" },
-  emptyView: { alignItems: "center", paddingVertical: 40 },
-  emptyText: { color: "#555555", fontSize: 14, fontWeight: "600" }
+  emptyView: { alignItems: "center", paddingVertical: 80, paddingHorizontal: 20 },
+  emptyText: { color: "#6b7280", fontSize: 14, fontWeight: "600", textAlign: "center", lineHeight: 20 }
 });
